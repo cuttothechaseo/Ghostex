@@ -259,6 +259,21 @@ test("typed operation scope rejection logs stay shareable", () => {
   assert.doesNotMatch(JSON.stringify(normalized), /private-project|secret-token|bd list/);
 });
 
+test("log text redacts inline websocket and file urls", () => {
+  const normalized = normalizeLogEntry({
+    error: "bridge failed for wss://remote.example.test/socket?token=secret-token",
+    event: "transport reconnect ws://127.0.0.1:4798/api/socket?session=CustomerDeploy",
+    level: "warn",
+    message: "opened file:///Users/person/dev/private-project/state.json?token=secret-token",
+    ts: "now",
+  });
+
+  assert.equal(normalized.event, "transport reconnect [redacted:url]");
+  assert.equal(normalized.error, "bridge failed for [redacted:url]");
+  assert.equal(normalized.message, "opened [redacted:url]");
+  assert.doesNotMatch(JSON.stringify(normalized), /remote\.example|127\.0\.0\.1|CustomerDeploy|private-project|secret-token/);
+});
+
 async function writeNativeSidebarSettings(homeDir: string, settings: Record<string, unknown>): Promise<void> {
   const stateDir = path.join(homeDir, ".ghostex", "state");
   await mkdir(stateDir, { recursive: true });

@@ -47,6 +47,9 @@ Debugging Mode diagnostic write.
 
 CDXC:GxserverLogs 2026-06-06-23:21:
 Preview fields are user-owned content by default because they commonly contain terminal titles, command output, prompts, or response bodies. Redact string preview keys at the logger boundary so future diagnostic call sites cannot accidentally persist snippets in Debugging Mode.
+
+CDXC:GxserverLogs 2026-06-17-22:51:
+Inline URL redaction must cover websocket and file URLs as well as HTTP URLs because gxserver transport errors and support-log diagnostics can embed `ws://`, `wss://`, or `file://` values with private paths or query strings inside free-form text.
 */
 export function createGxserverLogger(paths: GxserverPaths): GxserverLogger {
   const debuggingModeCache: DebuggingModeCache = { checkedAtMs: 0, enabled: false };
@@ -331,7 +334,7 @@ function redactSensitiveText(value: string): string {
       (_match, key: string) => `"${key}":"${redactionForKey(key.toLowerCase())}"`,
     )
     .replace(/\b(?:bearer|token|authorization|password|secret|credential)=?[^\s"']+/giu, `${REDACTED_SECRET}`)
-    .replace(/https?:\/\/[^\s"')]+/giu, REDACTED_URL)
+    .replace(/(?:https?|wss?|file):\/\/[^\s"')]+/giu, REDACTED_URL)
     .replace(/(?:~|\/Users\/[^/\s"']+|\/(?:private\/)?tmp|\/var\/folders|\/Volumes)\/[^\s"']+/gu, REDACTED_PATH);
 }
 
